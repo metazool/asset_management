@@ -7,7 +7,7 @@ name = "asset_management"
 version = "0.1.0"
 description = "A Django application for managing scientific instruments and assets"
 authors = [
-    { name = "Your Name", email = "your.email@example.com" },
+    { name = "Jo Walsh", email = "jowals@ceh.ac.uk" },
 ]
 dependencies = [
     "Django>=4.2.0",
