@@ -17,4 +17,4 @@ setup(
         "djangorestframework-simplejwt>=5.3.0",
     ],
     python_requires=">=3.8",
-) 
+)

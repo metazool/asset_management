@@ -308,4 +308,149 @@ All error responses include a JSON body with an error message:
 
    {
      "error": "Error message description"
-   } 
+   }
+
+Issues
+~~~~~~
+
+.. http:get:: /api/issues/
+
+   List all issues.
+
+   **Parameters**:
+   
+   - ``priority`` (string): Filter by priority (low, medium, high, critical)
+   - ``status`` (string): Filter by status (open, in_progress, resolved, closed)
+   - ``instrument`` (integer): Filter by instrument ID
+   - ``search`` (string): Search in title and description fields
+
+   **Response**:
+
+   .. sourcecode:: json
+
+      {
+        "count": 1,
+        "next": null,
+        "previous": null,
+        "results": [
+          {
+            "id": 1,
+            "title": "Temperature Sensor Malfunction",
+            "description": "Sensor showing inconsistent readings",
+            "priority": "high",
+            "status": "open",
+            "instrument": 1,
+            "reported_by": 1,
+            "assigned_to": 2,
+            "created_at": "2024-01-01T00:00:00Z",
+            "updated_at": "2024-01-01T00:00:00Z",
+            "resolved_at": null
+          }
+        ]
+      }
+
+.. http:post:: /api/issues/
+
+   Create a new issue.
+
+   **Request**:
+
+   .. sourcecode:: json
+
+      {
+        "title": "Temperature Sensor Malfunction",
+        "description": "Sensor showing inconsistent readings",
+        "priority": "high",
+        "instrument": 1,
+        "assigned_to": 2
+      }
+
+Sensor Types
+~~~~~~~~~~~
+
+.. http:get:: /api/sensor-types/
+
+   List all sensor types.
+
+   **Response**:
+
+   .. sourcecode:: json
+
+      {
+        "count": 1,
+        "next": null,
+        "previous": null,
+        "results": [
+          {
+            "id": 1,
+            "name": "Temperature",
+            "description": "Measures temperature in Celsius",
+            "unit": "°C",
+            "min_range": -40.0,
+            "max_range": 120.0,
+            "accuracy": 0.1
+          }
+        ]
+      }
+
+.. http:post:: /api/sensor-types/
+
+   Create a new sensor type.
+
+   **Request**:
+
+   .. sourcecode:: json
+
+      {
+        "name": "Temperature",
+        "description": "Measures temperature in Celsius",
+        "unit": "°C",
+        "min_range": -40.0,
+        "max_range": 120.0,
+        "accuracy": 0.1
+      }
+
+Measurement Types
+~~~~~~~~~~~~~~~
+
+.. http:get:: /api/measurement-types/
+
+   List all measurement types.
+
+   **Response**:
+
+   .. sourcecode:: json
+
+      {
+        "count": 1,
+        "next": null,
+        "previous": null,
+        "results": [
+          {
+            "id": 1,
+            "name": "Temperature",
+            "description": "Temperature measurement",
+            "unit": "°C",
+            "min_value": -273.15,
+            "max_value": 1000.0,
+            "precision": 2
+          }
+        ]
+      }
+
+.. http:post:: /api/measurement-types/
+
+   Create a new measurement type.
+
+   **Request**:
+
+   .. sourcecode:: json
+
+      {
+        "name": "Temperature",
+        "description": "Temperature measurement",
+        "unit": "°C",
+        "min_value": -273.15,
+        "max_value": 1000.0,
+        "precision": 2
+      } 
