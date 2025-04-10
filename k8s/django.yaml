@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: django
+  namespace: asset-management
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: django
+  template:
+    metadata:
+      labels:
+        app: django
+    spec:
+      containers:
+      - name: django
+        image: your-ecr-repository/asset-management:latest
+        ports:
+        - containerPort: 8000
+        envFrom:
+        - configMapRef:
+            name: asset-management-config
+        - secretRef:
+            name: asset-management-secrets
+        env:
+        - name: POSTGRES_HOST
+          value: "postgres"
+        - name: POSTGRES_PORT
+          value: "5432"
+        - name: POSTGRES_DB
+          value: "asset_management"
+        - name: POSTGRES_USER
+          value: "postgres"
+        - name: PYTHONPATH
+          value: "/app/src"
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        volumeMounts:
+        - name: static-files
+          mountPath: /app/src/asset_management/static
+        - name: media-files
+          mountPath: /app/src/asset_management/media
+        readinessProbe:
+          httpGet:
+            path: /api/health/
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /api/health/
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 15
+      volumes:
+      - name: static-files
+        persistentVolumeClaim:
+          claimName: static-files-pvc
+      - name: media-files
+        persistentVolumeClaim:
+          claimName: media-files-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: django
+  namespace: asset-management
+spec:
+  selector:
+    app: django
+  ports:
+  - port: 80
+    targetPort: 8000
+  type: ClusterIP 

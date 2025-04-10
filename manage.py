@@ -1,0 +1,1 @@
+src/asset_management/manage.py

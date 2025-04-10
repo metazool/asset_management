@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "asset_management"
+version = "0.1.0"
+description = "A Django application for managing scientific instruments and assets"
+authors = [
+    { name = "Your Name", email = "your.email@example.com" },
+]
+dependencies = [
+    "Django>=4.2.0",
+    "djangorestframework>=3.14.0",
+    "django-cors-headers>=4.3.0",
+    "django-filter>=23.2",
+    "psycopg2-binary>=2.9.6",
+    "django-environ>=0.11.2",
+    "django-allauth>=0.57.0",
+    "dj-rest-auth>=5.0.2",
+    "djangorestframework-simplejwt>=5.3.0",
+    # Testing dependencies
+    "pytest>=7.4.0",
+    "pytest-django>=4.7.0",
+    "pytest-cov>=4.1.0",
+    "factory-boy>=3.3.0",
+    "faker>=19.3.1",
+]
+requires-python = ">=3.8"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "asset_management.core.settings"
+python_files = ["test_*.py", "*_test.py"]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = [
+    "--reuse-db",
+    "--cov=src.asset_management",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "e2e: End-to-end tests",
+] 
