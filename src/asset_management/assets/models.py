@@ -1,8 +1,5 @@
 from django.db import models
 from django.conf import settings
-from django.core.validators import MinValueValidator
-from decimal import Decimal
-import uuid
 from django.utils import timezone
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -14,13 +11,14 @@ class Site(models.Model):
     """
     Represents a physical location where instruments are used or stored.
     """
+
     name = models.CharField(max_length=100)
     address = models.TextField()
     contact_person = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
-        related_name='managed_sites'
+        related_name="managed_sites",
     )
     code = models.CharField(max_length=10, unique=True)
     contact_email = models.EmailField()
@@ -53,6 +51,117 @@ class Department(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.code})"
+
+
+class SensorType(models.Model):
+    """
+    Represents different types of sensors that can be used in instruments.
+    """
+
+    name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True)
+    unit = models.CharField(
+        max_length=20, help_text="Unit of measurement (e.g., °C, Pa, V)"
+    )
+    min_range = models.DecimalField(
+        max_digits=10,
+        decimal_places=3,
+        null=True,
+        blank=True,
+        help_text="Minimum measurement range",
+    )
+    max_range = models.DecimalField(
+        max_digits=10,
+        decimal_places=3,
+        null=True,
+        blank=True,
+        help_text="Maximum measurement range",
+    )
+    accuracy = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Accuracy as percentage",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.unit})"
+
+    def clean(self):
+        """Validate the sensor type data."""
+        if self.min_range is not None and self.max_range is not None:
+            if self.min_range >= self.max_range:
+                raise ValidationError("Minimum range must be less than maximum range")
+        super().clean()
+
+
+class MeasurementType(models.Model):
+    """
+    Represents different types of measurements that can be performed by instruments.
+    """
+
+    name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True)
+    standard = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Standard or protocol used (e.g., ISO, ASTM)",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+
+class Issue(models.Model):
+    """
+    Represents an issue or problem with an instrument.
+    """
+
+    PRIORITY_CHOICES = [
+        ("low", "Low"),
+        ("medium", "Medium"),
+        ("high", "High"),
+        ("critical", "Critical"),
+    ]
+
+    STATUS_CHOICES = [
+        ("open", "Open"),
+        ("in_progress", "In Progress"),
+        ("resolved", "Resolved"),
+        ("closed", "Closed"),
+    ]
+
+    instrument = models.ForeignKey(
+        "Instrument", on_delete=models.CASCADE, related_name="issues"
+    )
+    title = models.CharField(max_length=200)
+    description = models.TextField()
+    priority = models.CharField(
+        max_length=20, choices=PRIORITY_CHOICES, default="medium"
+    )
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="open")
+    reported_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="reported_issues",
+    )
+    assigned_to = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="assigned_issues",
+        null=True,
+        blank=True,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.title} - {self.get_status_display()}"
 
 
 class Instrument(models.Model):
@@ -93,11 +202,37 @@ class Instrument(models.Model):
     )
     last_review_date = models.DateTimeField(null=True, blank=True)
     next_review_date = models.DateTimeField(null=True, blank=True)
+    sensor_types = models.ManyToManyField(
+        SensorType,
+        related_name="instruments",
+        blank=True,
+        help_text="Types of sensors installed in the instrument",
+    )
+    measurement_types = models.ManyToManyField(
+        MeasurementType,
+        related_name="instruments",
+        blank=True,
+        help_text="Types of measurements the instrument can perform",
+    )
+    resolution = models.DecimalField(
+        max_digits=10,
+        decimal_places=3,
+        null=True,
+        blank=True,
+        help_text="Resolution of the instrument",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"{self.name} ({self.serial_number})"
+
+    def clean(self):
+        """Validate the instrument data."""
+        if self.next_review_date and self.last_review_date:
+            if self.next_review_date <= self.last_review_date:
+                raise ValidationError("Next review date must be after last review date")
+        super().clean()
 
 
 class CalibrationCertificate(models.Model):
@@ -185,7 +320,8 @@ class CalibrationCertificate(models.Model):
             if len(data["measured_values"]) != len(data["reference_values"]):
                 return (
                     False,
-                    f"Measured and reference values must have the same length for parameter '{parameter}'",
+                    "Measured and reference values must have the same length "
+                    f"for parameter '{parameter}'",
                 )
 
             if not isinstance(data["correlation_coefficient"], (int, float)):
@@ -329,8 +465,13 @@ class CalibrationRecord(models.Model):
 
     def clean(self):
         """Validate the calibration record."""
-        if self.next_calibration_date and self.next_calibration_date <= self.date_performed:
-            raise ValidationError("Next calibration date must be after the date performed")
+        if (
+            self.next_calibration_date
+            and self.next_calibration_date <= self.date_performed
+        ):
+            raise ValidationError(
+                "Next calibration date must be after the date performed"
+            )
         super().clean()
 
 

@@ -1,4 +1,3 @@
-from django.shortcuts import render
 from rest_framework import viewsets, permissions, filters, status
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import (
@@ -10,6 +9,7 @@ from .models import (
     CalibrationRecord,
     CalibrationCertificate,
     Site,
+    Issue,
 )
 from .serializers import (
     LocationSerializer,
@@ -24,13 +24,12 @@ from .serializers import (
 from django.db import models
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from asset_management.api.permissions import (
-    IsAdminOrManager,
-    IsTechnician,
-    IsAuditor,
-)
 from django.utils import timezone
 from .services import TicketService
+from django.views.generic import ListView, DetailView, CreateView, UpdateView
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.urls import reverse_lazy
+from .forms import InstrumentForm
 
 # Create your views here.
 
@@ -242,3 +241,60 @@ class SiteViewSet(viewsets.ModelViewSet):
         else:
             permission_classes = [permissions.IsAuthenticated]
         return [permission() for permission in permission_classes]
+
+
+class InstrumentListView(LoginRequiredMixin, ListView):
+    model = Instrument
+    template_name = "assets/instrument_list.html"
+    context_object_name = "instruments"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["status_choices"] = Instrument.STATUS_CHOICES
+        context["category_choices"] = Instrument.CATEGORY_CHOICES
+        return context
+
+
+class InstrumentDetailView(LoginRequiredMixin, DetailView):
+    model = Instrument
+    template_name = "assets/instrument_detail.html"
+    context_object_name = "instrument"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        instrument = self.get_object()
+        context["calibration_records"] = instrument.calibration_records.all()
+        context["maintenance_records"] = instrument.maintenance_records.all()
+        return context
+
+
+class InstrumentCreateView(LoginRequiredMixin, CreateView):
+    model = Instrument
+    form_class = InstrumentForm
+    template_name = "assets/instrument_form.html"
+    success_url = reverse_lazy("instrument_list")
+
+
+class InstrumentUpdateView(LoginRequiredMixin, UpdateView):
+    model = Instrument
+    form_class = InstrumentForm
+    template_name = "assets/instrument_form.html"
+    success_url = reverse_lazy("instrument_list")
+
+
+class IssueListView(ListView):
+    model = Issue
+    template_name = "assets/issue_list.html"
+    context_object_name = "issues"
+
+    def get_queryset(self):
+        instrument_id = self.kwargs.get("instrument_id")
+        return Issue.objects.filter(instrument_id=instrument_id)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        instrument_id = self.kwargs.get("instrument_id")
+        context["instrument"] = Instrument.objects.get(id=instrument_id)
+        context["priority_choices"] = Issue.PRIORITY_CHOICES
+        context["status_choices"] = Issue.STATUS_CHOICES
+        return context

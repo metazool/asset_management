@@ -8,6 +8,8 @@ from .models import (
     Review,
     MaintenanceRecord,
     Site,
+    SensorType,
+    MeasurementType,
 )
 
 
@@ -31,11 +33,34 @@ class DepartmentAdmin(admin.ModelAdmin):
     search_fields = ("name", "code")
 
 
+@admin.register(SensorType)
+class SensorTypeAdmin(admin.ModelAdmin):
+    list_display = ("name", "unit", "min_range", "max_range", "accuracy")
+    list_filter = ("unit",)
+    search_fields = ("name", "description")
+    ordering = ("name",)
+
+
+@admin.register(MeasurementType)
+class MeasurementTypeAdmin(admin.ModelAdmin):
+    list_display = ("name", "standard")
+    list_filter = ("standard",)
+    search_fields = ("name", "description")
+    ordering = ("name",)
+
+
 @admin.register(Instrument)
 class InstrumentAdmin(admin.ModelAdmin):
-    list_display = ("name", "serial_number", "model", "status")
-    list_filter = ("status", "department", "location")
+    list_display = ("name", "serial_number", "model", "status", "resolution")
+    list_filter = (
+        "status",
+        "department",
+        "location",
+        "sensor_types",
+        "measurement_types",
+    )
     search_fields = ("name", "serial_number", "model", "manufacturer")
+    filter_horizontal = ("sensor_types", "measurement_types")
 
 
 @admin.register(CalibrationCertificate)
