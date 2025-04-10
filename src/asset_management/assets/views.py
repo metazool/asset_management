@@ -10,6 +10,8 @@ from .models import (
     CalibrationCertificate,
     Site,
     Issue,
+    SensorType,
+    MeasurementType,
 )
 from .serializers import (
     LocationSerializer,
@@ -20,6 +22,9 @@ from .serializers import (
     CalibrationRecordSerializer,
     CalibrationCertificateSerializer,
     SiteSerializer,
+    IssueSerializer,
+    SensorTypeSerializer,
+    MeasurementTypeSerializer,
 )
 from django.db import models
 from rest_framework.decorators import action
@@ -30,6 +35,7 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from .forms import InstrumentForm
+from rest_framework.filters import SearchFilter
 
 # Create your views here.
 
@@ -57,8 +63,23 @@ class InstrumentViewSet(viewsets.ModelViewSet):
     serializer_class = InstrumentSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
-    filterset_fields = ["status", "review_status", "department", "location"]
+    filterset_fields = [
+        "status",
+        "review_status",
+        "department",
+        "location",
+        "sensor_types",
+        "measurement_types",
+        "category",
+    ]
     search_fields = ["name", "serial_number", "model", "manufacturer"]
+
+    def get_queryset(self):
+        queryset = Instrument.objects.all()
+        if not self.request.user.is_staff:
+            # Non-staff users can only see instruments in their department
+            queryset = queryset.filter(department=self.request.user.department)
+        return queryset
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
@@ -298,3 +319,57 @@ class IssueListView(ListView):
         context["priority_choices"] = Issue.PRIORITY_CHOICES
         context["status_choices"] = Issue.STATUS_CHOICES
         return context
+
+
+class IssueViewSet(viewsets.ModelViewSet):
+    queryset = Issue.objects.all()
+    serializer_class = IssueSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, SearchFilter]
+    filterset_fields = [
+        "status",
+        "priority",
+        "instrument",
+        "reported_by",
+        "assigned_to",
+    ]
+    search_fields = ["title", "description"]
+
+    def get_permissions(self):
+        if self.action in ["update", "partial_update", "destroy"]:
+            return [permissions.IsAdminUser()]
+        return super().get_permissions()
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_staff:
+            return Issue.objects.all()
+        return Issue.objects.filter(instrument__department=user.department)
+
+
+class SensorTypeViewSet(viewsets.ModelViewSet):
+    queryset = SensorType.objects.all()
+    serializer_class = SensorTypeSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, SearchFilter]
+    filterset_fields = ["name", "description"]
+    search_fields = ["name", "description"]
+
+    def get_permissions(self):
+        if self.action in ["create", "update", "partial_update", "destroy"]:
+            return [permissions.IsAdminUser()]
+        return super().get_permissions()
+
+
+class MeasurementTypeViewSet(viewsets.ModelViewSet):
+    queryset = MeasurementType.objects.all()
+    serializer_class = MeasurementTypeSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, SearchFilter]
+    filterset_fields = ["name", "unit", "description"]
+    search_fields = ["name", "unit", "description"]
+
+    def get_permissions(self):
+        if self.action in ["create", "update", "partial_update", "destroy"]:
+            return [permissions.IsAdminUser()]
+        return super().get_permissions()

@@ -74,28 +74,36 @@ class CalibrationRecordSerializer(serializers.ModelSerializer):
     """
     Serializer for CalibrationRecord model with nested relationships.
     """
+
     performed_by = serializers.PrimaryKeyRelatedField(
-        default=serializers.CurrentUserDefault(),
-        queryset=User.objects.all()
+        default=serializers.CurrentUserDefault(), queryset=User.objects.all()
     )
 
     class Meta:
         model = CalibrationRecord
         fields = [
-            'id', 'instrument', 'date_performed', 'next_calibration_date',
-            'calibration_type', 'status', 'description', 'performed_by',
-            'certificate'
+            "id",
+            "instrument",
+            "date_performed",
+            "next_calibration_date",
+            "calibration_type",
+            "status",
+            "description",
+            "performed_by",
+            "certificate",
         ]
-        read_only_fields = ['id']
+        read_only_fields = ["id"]
 
     def validate(self, data):
         if "date_performed" in data and "next_calibration_date" in data:
             if data["next_calibration_date"] <= data["date_performed"]:
-                raise serializers.ValidationError({
-                    "next_calibration_date": (
-                        "Next calibration date must be after the date performed"
-                    )
-                })
+                raise serializers.ValidationError(
+                    {
+                        "next_calibration_date": (
+                            "Next calibration date must be after the date performed"
+                        )
+                    }
+                )
 
         # Validate status transitions
         if "status" in data:
@@ -114,16 +122,22 @@ class CalibrationRecordSerializer(serializers.ModelSerializer):
                 "cancelled": [],  # No valid transitions from cancelled
             }
 
-            if current_status and new_status not in valid_transitions.get(current_status, []):
-                raise serializers.ValidationError({
-                    "status": f"Invalid status transition from {current_status} to {new_status}"
-                })
+            if current_status and new_status not in valid_transitions.get(
+                current_status, []
+            ):
+                raise serializers.ValidationError(
+                    {
+                        "status": f"Invalid status transition from {current_status} to {new_status}"
+                    }
+                )
 
             # If transitioning to completed, require a certificate
             if new_status == "completed" and not data.get("certificate"):
-                raise serializers.ValidationError({
-                    "certificate": "A certificate is required when completing a calibration"
-                })
+                raise serializers.ValidationError(
+                    {
+                        "certificate": "A certificate is required when completing a calibration"
+                    }
+                )
 
         return data
 

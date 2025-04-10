@@ -9,6 +9,9 @@ from .models import (
     CalibrationRecord,
     CalibrationCertificate,
     Site,
+    Issue,
+    SensorType,
+    MeasurementType,
 )
 from .services import TicketService
 
@@ -298,3 +301,52 @@ class CalibrationCertificateSerializer(serializers.ModelSerializer):
         Validate the calibration certificate data.
         """
         return data
+
+
+class IssueSerializer(serializers.ModelSerializer):
+    instrument = InstrumentSerializer(read_only=True)
+    instrument_id = serializers.PrimaryKeyRelatedField(
+        queryset=Instrument.objects.all(), source="instrument", write_only=True
+    )
+    reported_by = serializers.ReadOnlyField(source="reported_by.email")
+    assigned_to = serializers.ReadOnlyField(source="assigned_to.email")
+    assigned_to_id = serializers.PrimaryKeyRelatedField(
+        queryset=CustomUser.objects.all(),
+        source="assigned_to",
+        write_only=True,
+        required=False,
+    )
+
+    class Meta:
+        model = Issue
+        fields = [
+            "id",
+            "instrument",
+            "instrument_id",
+            "title",
+            "description",
+            "status",
+            "priority",
+            "reported_by",
+            "assigned_to",
+            "assigned_to_id",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ("reported_by", "created_at", "updated_at")
+
+    def create(self, validated_data):
+        validated_data["reported_by"] = self.context["request"].user
+        return super().create(validated_data)
+
+
+class SensorTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SensorType
+        fields = "__all__"
+
+
+class MeasurementTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MeasurementType
+        fields = "__all__"

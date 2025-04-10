@@ -13,6 +13,9 @@ from .views import (
     InstrumentCreateView,
     InstrumentUpdateView,
     IssueListView,
+    IssueViewSet,
+    SensorTypeViewSet,
+    MeasurementTypeViewSet,
 )
 
 router = DefaultRouter()
@@ -27,6 +30,9 @@ router.register(
     CalibrationCertificateViewSet,
     basename="calibration-certificate",
 )
+router.register(r"issues", IssueViewSet)
+router.register(r"sensor-types", SensorTypeViewSet)
+router.register(r"measurement-types", MeasurementTypeViewSet)
 
 app_name = "assets"
 
