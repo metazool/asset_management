@@ -373,3 +373,39 @@ class MeasurementTypeViewSet(viewsets.ModelViewSet):
         if self.action in ["create", "update", "partial_update", "destroy"]:
             return [permissions.IsAdminUser()]
         return super().get_permissions()
+
+
+class CalibrationRecordView(ListView):
+    model = CalibrationRecord
+    template_name = "assets/calibration_list.html"
+    context_object_name = "calibration_records"
+
+    def get_queryset(self):
+        return CalibrationRecord.objects.select_related("instrument").all()
+
+
+class CalibrationDetailView(DetailView):
+    model = CalibrationRecord
+    template_name = "assets/calibration_detail.html"
+    context_object_name = "calibration"
+
+
+class MaintenanceRecordView(ListView):
+    model = MaintenanceRecord
+    template_name = "assets/maintenance_list.html"
+    context_object_name = "maintenance_records"
+
+    def get_queryset(self):
+        return MaintenanceRecord.objects.select_related("instrument").all()
+
+
+class MaintenanceDetailView(DetailView):
+    model = MaintenanceRecord
+    template_name = "assets/maintenance_detail.html"
+    context_object_name = "maintenance"
+
+
+class CalibrationCertificateView(ListView):
+    model = CalibrationCertificate
+    template_name = "assets/certificate_list.html"
+    context_object_name = "certificates"

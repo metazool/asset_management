@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div data-controller="maintenance-detail" class="p-6">
+    <div class="bg-white shadow-md rounded-lg p-6">
+        <h1 class="text-2xl font-bold mb-6">Maintenance Record Details</h1>
+        
+        <dl class="grid grid-cols-2 gap-4">
+            <dt class="font-semibold">Instrument:</dt>
+            <dd>{{ maintenance.instrument.name }}</dd>
+            
+            <dt class="font-semibold">Date:</dt>
+            <dd>{{ maintenance.date|date:"Y-m-d" }}</dd>
+            
+            <dt class="font-semibold">Type:</dt>
+            <dd>{{ maintenance.maintenance_type }}</dd>
+            
+            <dt class="font-semibold">Status:</dt>
+            <dd>
+                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                    {% if maintenance.status == 'COMPLETED' %}bg-green-100 text-green-800
+                    {% elif maintenance.status == 'PENDING' %}bg-yellow-100 text-yellow-800
+                    {% else %}bg-red-100 text-red-800{% endif %}">
+                    {{ maintenance.status }}
+                </span>
+            </dd>
+            
+            <dt class="font-semibold">Performed By:</dt>
+            <dd>{{ maintenance.performed_by }}</dd>
+            
+            <dt class="font-semibold">Description:</dt>
+            <dd class="col-span-2">{{ maintenance.description|linebreaks }}</dd>
+        </dl>
+
+        <div class="mt-6 flex space-x-4">
+            <a href="{% url 'maintenance_list' %}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
+                Back to List
+            </a>
+            <a href="{% url 'maintenance_update' maintenance.pk %}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                Edit Record
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
